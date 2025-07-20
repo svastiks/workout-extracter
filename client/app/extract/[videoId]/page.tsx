@@ -6,79 +6,13 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, Users, Target, ArrowLeft, Download, Share2, Copy, Check, ChevronDown, ChevronUp } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
-
-// Mock extracted workout data
-const workoutData = {
-  videoTitle: "The PERFECT Science-Based Push Workout (2024)",
-  creator: "Jeff Nippard",
-  duration: "12 minutes",
-  difficulty: "Intermediate",
-  equipment: ["Barbell", "Dumbbells", "Cable Machine"],
-  targetMuscles: ["Chest", "Shoulders", "Triceps"],
-  workoutType: "Push Day",
-  totalTime: "45-60 min",
-  exercises: [
-    {
-      name: "Barbell Bench Press",
-      sets: 4,
-      reps: "6-8",
-      rest: "3 minutes",
-      notes: "Focus on controlled eccentric, pause at chest",
-      emoji: "💪",
-      difficulty: "Hard",
-    },
-    {
-      name: "Incline Dumbbell Press",
-      sets: 3,
-      reps: "8-10",
-      rest: "2-3 minutes",
-      notes: "30-45 degree incline, full range of motion",
-      emoji: "📐",
-      difficulty: "Medium",
-    },
-    {
-      name: "Cable Lateral Raises",
-      sets: 3,
-      reps: "12-15",
-      rest: "90 seconds",
-      notes: "Slight forward lean, control the negative",
-      emoji: "🔄",
-      difficulty: "Easy",
-    },
-    {
-      name: "Overhead Press",
-      sets: 3,
-      reps: "8-10",
-      rest: "2-3 minutes",
-      notes: "Standing or seated, core engaged throughout",
-      emoji: "⬆️",
-      difficulty: "Medium",
-    },
-    {
-      name: "Close-Grip Bench Press",
-      sets: 3,
-      reps: "10-12",
-      rest: "2 minutes",
-      notes: "Hands shoulder-width apart, elbows tucked",
-      emoji: "🤏",
-      difficulty: "Medium",
-    },
-    {
-      name: "Cable Tricep Pushdowns",
-      sets: 3,
-      reps: "12-15",
-      rest: "90 seconds",
-      notes: "Keep elbows stationary, full extension",
-      emoji: "⬇️",
-      difficulty: "Easy",
-    },
-  ],
-}
+import { getWorkoutByYoutubeId, Workout } from "@/services/api"
+import { useParams } from "next/navigation"
 
 const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty.toLowerCase()) {
+  switch (difficulty?.toLowerCase()) {
     case "easy":
       return "bg-green-500/20 text-green-300 border-green-500/30"
     case "medium":
@@ -91,10 +25,32 @@ const getDifficultyColor = (difficulty: string) => {
 }
 
 export default function WorkoutExtractPage() {
+  const params = useParams();
+  const videoId = params?.videoId as string;
+  const [workoutData, setWorkoutData] = useState<Workout | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copiedExercise, setCopiedExercise] = useState<number | null>(null)
   const [copiedFull, setCopiedFull] = useState(false)
   const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set())
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (!videoId) return;
+    setLoading(true);
+    getWorkoutByYoutubeId(videoId)
+      .then(data => {
+        if (typeof data.workoutData === "string") {
+          data.workoutData = JSON.parse(data.workoutData);
+        }
+        setWorkoutData(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Workout not found");
+        setLoading(false);
+      });
+  }, [videoId]);
 
   const toggleExercise = (index: number) => {
     const newExpanded = new Set(expandedExercises)
@@ -107,63 +63,33 @@ export default function WorkoutExtractPage() {
   }
 
   const copyExercise = async (exercise: any, index: number) => {
-    const exerciseText = `${exercise.emoji} ${exercise.name}
-Sets: ${exercise.sets} | Reps: ${exercise.reps} | Rest: ${exercise.rest}
-Notes: ${exercise.notes}`
-
+    const exerciseText = `${exercise.emoji || ''} ${exercise.name}\nSets: ${exercise.sets} | Reps: ${exercise.reps} | Rest: ${exercise.rest}\nNotes: ${exercise.notes}`
     try {
       await navigator.clipboard.writeText(exerciseText)
       setCopiedExercise(index)
-      toast({
-        title: "Exercise copied! 📋",
-        description: "Exercise details copied to clipboard",
-      })
+      toast({ title: "Exercise copied! 📋", description: "Exercise details copied to clipboard" })
       setTimeout(() => setCopiedExercise(null), 2000)
     } catch (err) {
-      toast({
-        title: "Failed to copy",
-        description: "Please try again",
-        variant: "destructive",
-      })
+      toast({ title: "Failed to copy", description: "Please try again", variant: "destructive" })
     }
   }
 
   const copyFullWorkout = async () => {
-    const workoutText = `🏋️ ${workoutData.videoTitle}
-👨‍🏫 Created by: ${workoutData.creator}
-⏱️ Duration: ${workoutData.totalTime}
-🎯 Type: ${workoutData.workoutType}
-💪 Target: ${workoutData.targetMuscles.join(", ")}
-🛠️ Equipment: ${workoutData.equipment.join(", ")}
-
-EXERCISES:
-${workoutData.exercises
-  .map(
-    (exercise, index) =>
-      `${index + 1}. ${exercise.emoji} ${exercise.name}
-   Sets: ${exercise.sets} | Reps: ${exercise.reps} | Rest: ${exercise.rest}
-   Notes: ${exercise.notes}`,
-  )
-  .join("\n\n")}
-
-Generated by WorkoutExtract 🚀`
-
+    if (!workoutData) return;
+    const workoutText = `🏋️ ${workoutData.title}\n👨‍🏫 Created by: ${workoutData.creator.name}\n⏱️ Duration: ${workoutData.thumbnailUrl}\n🎯 Type: ${workoutData.workoutData?.workoutType || ''}\n💪 Target: ${(workoutData.workoutData?.targetMuscles || []).join(", ")}\n🛠️ Equipment: ${(workoutData.workoutData?.equipment || []).join(", ")}\n\nEXERCISES:\n${(workoutData.workoutData?.exercises || []).map((exercise: any, index: number) => `${index + 1}. ${exercise.emoji || ''} ${exercise.name}\n   Sets: ${exercise.sets} | Reps: ${exercise.reps} | Rest: ${exercise.rest}\n   Notes: ${exercise.notes}`).join("\n\n")}\n\nGenerated by WorkoutExtract 🚀`
     try {
       await navigator.clipboard.writeText(workoutText)
       setCopiedFull(true)
-      toast({
-        title: "Full workout copied! 🎉",
-        description: "Complete workout routine copied to clipboard",
-      })
+      toast({ title: "Full workout copied! 🎉", description: "Complete workout routine copied to clipboard" })
       setTimeout(() => setCopiedFull(false), 3000)
     } catch (err) {
-      toast({
-        title: "Failed to copy",
-        description: "Please try again",
-        variant: "destructive",
-      })
+      toast({ title: "Failed to copy", description: "Please try again", variant: "destructive" })
     }
   }
+
+  if (loading) return <div className="text-center text-white py-20">Loading workout...</div>;
+  if (error) return <div className="text-center text-red-500 py-20">{error}</div>;
+  if (!workoutData) return null;
 
   return (
     <div className="bg-black min-h-screen">
@@ -209,17 +135,17 @@ Generated by WorkoutExtract 🚀`
             <div className="flex items-start gap-4">
               <Image
                 src="/placeholder.svg?height=80&width=80"
-                alt={workoutData.creator}
+                alt={workoutData.creator.name}
                 width={60}
                 height={60}
                 className="rounded-full"
               />
               <div className="flex-1">
                 <CardTitle className="text-2xl text-white mb-2 flex items-center gap-2">
-                  🏋️ {workoutData.videoTitle}
+                  🏋️ {workoutData.title}
                 </CardTitle>
                 <CardDescription className="text-gray-300 text-lg mb-4">
-                  👨‍🏫 Created by {workoutData.creator}
+                  👨‍🏫 Created by {workoutData.creator.name}
                 </CardDescription>
                 <div className="flex flex-wrap gap-3">
                   <Badge className="bg-gray-800 text-gray-300 border-gray-700">
@@ -230,7 +156,7 @@ Generated by WorkoutExtract 🚀`
                     <Target className="w-3 h-3 mr-1" />🎯 {workoutData.difficulty}
                   </Badge>
                   <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
-                    <Users className="w-3 h-3 mr-1" />💪 {workoutData.workoutType}
+                    <Users className="w-3 h-3 mr-1" />💪 {workoutData.workoutData?.workoutType || ''}
                   </Badge>
                 </div>
               </div>
@@ -249,7 +175,7 @@ Generated by WorkoutExtract 🚀`
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {workoutData.exercises.map((exercise, index) => (
+                {workoutData.workoutData?.exercises?.map((exercise, index) => (
                   <Card key={index} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all">
                     <CardContent className="p-4">
                       <div
@@ -352,7 +278,7 @@ Generated by WorkoutExtract 🚀`
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {workoutData.targetMuscles.map((muscle, index) => (
+                  {(workoutData.workoutData?.targetMuscles || []).map((muscle, index) => (
                     <Badge key={index} variant="secondary" className="bg-gray-800 text-gray-300 border-gray-700">
                       💪 {muscle}
                     </Badge>
@@ -368,7 +294,7 @@ Generated by WorkoutExtract 🚀`
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {workoutData.equipment.map((item, index) => (
+                  {(workoutData.workoutData?.equipment || []).map((item, index) => (
                     <div key={index} className="flex items-center gap-2 text-gray-300">
                       <div className="w-2 h-2 bg-white rounded-full"></div>
                       {item}
@@ -386,7 +312,7 @@ Generated by WorkoutExtract 🚀`
               <CardContent className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">🏋️ Total Exercises</span>
-                  <span className="text-white font-semibold">{workoutData.exercises.length}</span>
+                  <span className="text-white font-semibold">{(workoutData.workoutData?.exercises || []).length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">⏱️ Estimated Time</span>
@@ -398,7 +324,7 @@ Generated by WorkoutExtract 🚀`
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">💪 Workout Type</span>
-                  <span className="text-white font-semibold">{workoutData.workoutType}</span>
+                  <span className="text-white font-semibold">{workoutData.workoutData?.workoutType || ''}</span>
                 </div>
               </CardContent>
             </Card>
