@@ -1,13 +1,11 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Clock, Users, Target, ArrowLeft, Download, Share2, Search, Youtube } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { initiateExtraction, getExtractionStatus } from "@/services/api"
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { initiateExtraction, getExtractionStatus } from "@/services/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Youtube, Search } from "lucide-react";
 
 export default function ExtractPage() {
   const [url, setUrl] = useState("");
@@ -19,15 +17,7 @@ export default function ExtractPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    try {
-      const { jobId } = await initiateExtraction(url);
-      setJobId(jobId);
-      setStatus("PENDING");
-      setProgress(0);
-    } catch (err) {
-      setError("Failed to start extraction. Please try again.");
-    }
+    // Extraction logic removed; now handled in the homepage
   };
 
   useEffect(() => {
@@ -86,8 +76,8 @@ export default function ExtractPage() {
             {status && <div className="text-gray-400">Status: {status}</div>}
             {error && <div className="text-red-500">{error}</div>}
           </form>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
     </div>
   );
 }

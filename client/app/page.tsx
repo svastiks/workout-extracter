@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -5,57 +7,16 @@ import { Badge } from "@/components/ui/badge"
 import { Play, Clock, Users, Zap, Youtube, Search, Star } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-
-const fitnessYoutubers = [
-  {
-    name: "Jeff Nippard",
-    subscribers: "4.2M",
-    specialty: "Science-Based Training",
-    avatar: "/placeholder.svg?height=80&width=80",
-    verified: true,
-  },
-  {
-    name: "Athlean-X",
-    subscribers: "13.5M",
-    specialty: "Functional Training",
-    avatar: "/placeholder.svg?height=80&width=80",
-    verified: true,
-  },
-  {
-    name: "Jeremy Ethier",
-    subscribers: "5.8M",
-    specialty: "Evidence-Based Fitness",
-    avatar: "/placeholder.svg?height=80&width=80",
-    verified: true,
-  },
-  {
-    name: "Calisthenic Movement",
-    subscribers: "2.1M",
-    specialty: "Bodyweight Training",
-    avatar: "/placeholder.svg?height=80&width=80",
-    verified: true,
-  },
-  {
-    name: "Stephanie Buttermore",
-    subscribers: "1.3M",
-    specialty: "Women's Fitness",
-    avatar: "/placeholder.svg?height=80&width=80",
-    verified: true,
-  },
-  {
-    name: "Renaissance Periodization",
-    subscribers: "1.8M",
-    specialty: "Muscle Building Science",
-    avatar: "/placeholder.svg?height=80&width=80",
-    verified: true,
-  },
-]
+import { useState, useEffect } from "react";
+import React from "react";
+import { initiateExtraction, getCreators, type Creator, getVideosByCreatorId } from "@/services/api";
+import { useRouter } from "next/navigation";
 
 const features = [
   {
     icon: Clock,
     title: "Save Hours of Time",
-    description: "Get workout routines in minutes instead of watching 30+ minute videos",
+    description: "Get workout routines in seconds instead of watching 30+ minute videos",
   },
   {
     icon: Zap,
@@ -70,6 +31,67 @@ const features = [
 ]
 
 export default function HomePage() {
+  const [url, setUrl] = useState("");
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchCreators = async () => {
+      try {
+        const creatorsData = await getCreators();
+        // Fetch video counts for each creator
+        const creatorsWithVideoCounts = await Promise.all(
+          creatorsData.slice(0, 6).map(async (creator) => {
+            try {
+              const videos = await getVideosByCreatorId(creator.id);
+              return {
+                ...creator,
+                videoCount: videos.length
+              };
+            } catch (error) {
+              console.error(`Failed to fetch videos for creator ${creator.name}:`, error);
+              return {
+                ...creator,
+                videoCount: 0
+              };
+            }
+          })
+        );
+        setCreators(creatorsWithVideoCounts);
+      } catch (error) {
+        console.error("Failed to fetch creators:", error);
+        // Fallback to empty array
+        setCreators([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCreators();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("[Extract] Form submitted! URL:", url);
+    try {
+      console.log("[Extract] Calling initiateExtraction...");
+      const data = await initiateExtraction(url);
+      console.log("[Extract] API call succeeded. Response:", data);
+      if ('jobId' in data) {
+        // New extraction started, show a message or handle as needed
+        alert("Extraction started! Please wait for processing.");
+      } else if ('id' in data && 'youtubeVideoId' in data) {
+        console.log("Redirecting to: /extract/" + data.youtubeVideoId);
+        router.push(`/extract/${data.youtubeVideoId}`);
+      } else {
+        console.log("Unexpected response from server:", data);
+      }
+    } catch (err) {
+      console.log("[Extract] Error during extraction:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black">
       {/* Header */}
@@ -104,9 +126,9 @@ export default function HomePage() {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
           <div className="max-w-4xl mx-auto">
-            <Badge className="mb-6 bg-gray-800 text-gray-300 border-gray-700">🚀 Extract Any Workout Routine</Badge>
+            <div className="inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold transition-colors mb-6 bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700">🚀 Extract Any Workout Routine</div>
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-              Get Your Workout Routine in <span className="text-gray-400">Minutes</span>
+              Get Your Workout Routine in <span className="text-gray-300">Seconds</span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
               No More Wasting Time Watching Long Videos. Paste any fitness YouTube URL and get a structured workout plan
@@ -115,32 +137,38 @@ export default function HomePage() {
 
             {/* URL Input */}
             <div className="max-w-2xl mx-auto mb-12">
-              <div className="flex gap-3 p-2 bg-gray-900 rounded-2xl border border-gray-800">
-                <div className="flex items-center gap-2 px-3">
-                  <Youtube className="w-5 h-5 text-red-500" />
+              <form onSubmit={handleSubmit}>
+                <div className="flex gap-3 p-3 bg-gray-900 rounded-2xl border border-gray-800">
+                  <div className="flex items-center gap-2 px-3">
+                    <Youtube className="w-5 h-5 text-red-500" />
+                  </div>
+                  <Input
+                    type="text"
+                    value={url}
+                    onChange={e => setUrl(e.target.value)}
+                    placeholder="Paste YouTube URL here (e.g., https://youtube.com/watch?v=...)"
+                    className="border-0 bg-transparent text-white placeholder:text-gray-400 focus-visible:ring-0 focus-visible:outline-none text-lg flex-1"
+                    required
+                  />
+                  <Button type="submit" className="bg-white hover:bg-gray-200 text-black px-8 border-0 shadow-none rounded-xl">
+                    <Search className="w-4 h-4 mr-2 text-black" />
+                    Extract
+                  </Button>
                 </div>
-                <Input
-                  placeholder="Paste YouTube URL here (e.g., https://youtube.com/watch?v=...)"
-                  className="border-0 bg-transparent text-white placeholder:text-gray-400 focus-visible:ring-0 text-lg"
-                />
-                <Button className="bg-white hover:bg-gray-200 text-black px-8">
-                  <Search className="w-4 h-4 mr-2" />
-                  Extract
-                </Button>
-              </div>
+              </form>
               <p className="text-sm text-gray-400 mt-2">
                 Try with videos from Jeff Nippard, Athlean-X, Jeremy Ethier, and more!
               </p>
             </div>
 
             {/* Features */}
-            <div className="grid md:grid-cols-3 gap-6 mb-16">
+            <div className="grid md:grid-cols-3 gap-8 mb-16 max-w-6xl mx-auto">
               {features.map((feature, index) => (
-                <Card key={index} className="bg-gray-900 border-gray-800">
-                  <CardContent className="p-6 text-center">
-                    <feature.icon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                    <p className="text-gray-400 text-sm">{feature.description}</p>
+                <Card key={index} className="bg-gray-900 border-gray-800 min-h-[200px]">
+                  <CardContent className="p-8 text-center">
+                    <feature.icon className="w-16 h-16 text-gray-400 mx-auto mb-6" />
+                    <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
+                    <p className="text-gray-400 text-base">{feature.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -160,47 +188,51 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {fitnessYoutubers.slice(0, 6).map((creator, index) => (
-              <Card
-                key={index}
-                className="bg-gray-900 border-gray-800 hover:bg-gray-800 transition-all cursor-pointer group"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <Image
-                        src={creator.avatar || "/placeholder.svg"}
-                        alt={creator.name}
-                        width={60}
-                        height={60}
-                        className="rounded-full"
-                      />
-                      {creator.verified && (
+            {loading ? (
+              <p className="text-center text-gray-400">Loading creators...</p>
+            ) : creators.length === 0 ? (
+              <p className="text-center text-gray-400">No creators found.</p>
+            ) : (
+              creators.map((creator, index) => (
+                <Card
+                  key={index}
+                  className="bg-gray-900 border-gray-800 hover:bg-gray-800 transition-all cursor-pointer group"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <Image
+                          src={creator.profileImageUrl || "/placeholder.svg"}
+                          alt={creator.name}
+                          width={60}
+                          height={60}
+                          className="rounded-full"
+                        />
                         <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
                           <Star className="w-3 h-3 text-white fill-white" />
                         </div>
-                      )}
+                      </div>
+                      <div>
+                        <CardTitle className="text-white text-lg group-hover:text-gray-300 transition-colors">
+                          {creator.name}
+                        </CardTitle>
+                        <CardDescription className="text-gray-400">Verified Creator</CardDescription>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-white text-lg group-hover:text-gray-300 transition-colors">
-                        {creator.name}
-                      </CardTitle>
-                      <CardDescription className="text-gray-400">{creator.subscribers} subscribers</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <Badge variant="secondary" className="bg-gray-800 text-gray-300 border-gray-700">
-                    {creator.specialty}
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Badge variant="secondary" className="bg-gray-800 text-gray-300 border-gray-700 text-sm px-3 py-1">
+                      {creator.videoCount || 0} {creator.videoCount === 1 ? 'video' : 'videos'}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
 
           <div className="text-center">
             <Link href="/catalog">
-              <Button className="bg-white hover:bg-gray-200 text-black px-8 py-3">View All Creators</Button>
+              <Button className="bg-white hover:bg-gray-200 text-black px-8 py-3 rounded-xl">View All Creators</Button>
             </Link>
           </div>
         </div>
