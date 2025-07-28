@@ -14,13 +14,33 @@ export interface Workout {
   youtubeVideoId: string;
   title: string;
   thumbnailUrl: string;
-  workoutData: any; // You can refine this type if you have a schema
+  workoutData: {
+    equipment: string[];
+    exercises: Array<{
+      name: string;
+      reps: string | null;
+      rest: string | null;
+      sets: string | null;
+      emoji: string;
+      notes: string;
+      difficulty: string;
+      reps_transparency?: string;
+      sets_transparency?: string;
+      rest_transparency?: string;
+    }>;
+    workoutType: string | null;
+    targetMuscles: string[];
+  };
   creator: {
     id: number;
     name: string;
     youtubeChannelId: string;
     profileImageUrl: string;
   };
+  // Optional properties that might be added later
+  duration?: string;
+  difficulty?: string;
+  totalTime?: string;
 }
 
 // --- Creators API ---
@@ -30,53 +50,54 @@ export interface Creator {
   name: string;
   youtubeChannelId: string;
   profileImageUrl: string;
+  videoCount?: number; // Add video count property
   // Add other fields as needed (subscribers, specialty, etc.)
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export const initiateExtraction = async (url: string): Promise<{ jobId: string }> => {
-  const res = await fetch(`${API_BASE}/workouts/extract`, {
+export async function initiateExtraction(url: string) {
+  const res = await fetch(`${API_BASE_URL}/workouts/extract`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
   });
-  if (!res.ok) throw new Error("Failed to initiate extraction");
-  return res.json();
-};
+  if (!res.ok) throw new Error("Extraction failed");
+  return res.json(); // { jobId }
+}
 
-export const getExtractionStatus = async (jobId: string): Promise<ExtractionJob> => {
-  const res = await fetch(`${API_BASE}/workouts/extract/status/${jobId}`);
+export async function getExtractionStatus(jobId: string): Promise<ExtractionJob> {
+  const res = await fetch(`${API_BASE_URL}/workouts/extract/status/${jobId}`);
   if (!res.ok) throw new Error("Failed to get extraction status");
   return res.json();
 };
 
-export const getWorkoutDetails = async (videoId: string): Promise<Workout> => {
-  const res = await fetch(`${API_BASE}/workouts/${videoId}`);
+export async function getWorkoutDetails(videoId: string): Promise<Workout> {
+  const res = await fetch(`${API_BASE_URL}/workouts/${videoId}`);
   if (!res.ok) throw new Error("Workout not found");
   return res.json();
 };
 
-export const getWorkoutByYoutubeId = async (youtubeVideoId: string): Promise<Workout> => {
-  const res = await fetch(`${API_BASE}/workouts/youtube/${youtubeVideoId}`);
+export async function getWorkoutByYoutubeId(youtubeVideoId: string): Promise<Workout> {
+  const res = await fetch(`${API_BASE_URL}/workouts/youtube/${youtubeVideoId}`);
   if (!res.ok) throw new Error("Workout not found");
   return res.json();
 };
 
-export const getCreators = async (): Promise<Creator[]> => {
-  const res = await fetch(`${API_BASE}/creators`);
+export async function getCreators(): Promise<Creator[]> {
+  const res = await fetch(`${API_BASE_URL}/creators`);
   if (!res.ok) throw new Error("Failed to fetch creators");
   return res.json();
 };
 
-export const getCreatorById = async (id: number): Promise<Creator> => {
-  const res = await fetch(`${API_BASE}/creators/${id}`);
+export async function getCreatorById(id: number): Promise<Creator> {
+  const res = await fetch(`${API_BASE_URL}/creators/${id}`);
   if (!res.ok) throw new Error("Creator not found");
   return res.json();
 };
 
-export const getVideosByCreatorId = async (creatorId: number) => {
-  const res = await fetch(`${API_BASE}/creators/${creatorId}/videos`);
+export async function getVideosByCreatorId(creatorId: number) {
+  const res = await fetch(`${API_BASE_URL}/creators/${creatorId}/videos`);
   if (!res.ok) throw new Error("Failed to fetch videos for creator");
   return res.json();
 }; 
