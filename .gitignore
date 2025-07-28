@@ -28,6 +28,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# Server config file
+server/src/main/resources/application.properties
+
 # Vercel
 .vercel
 
@@ -99,3 +102,4 @@ jspm_packages/
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.* server/target/
+server/target/

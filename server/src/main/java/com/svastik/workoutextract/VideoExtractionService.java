@@ -3,6 +3,7 @@ package com.svastik.workoutextract;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,12 @@ import java.util.UUID;
 import java.util.Optional;
 import java.io.IOException;
 import java.util.Map;
+import com.svastik.workoutextract.Video;
+import com.svastik.workoutextract.Creator;
+import com.svastik.workoutextract.ExtractionJob;
+import com.svastik.workoutextract.VideoRepository;
+import com.svastik.workoutextract.CreatorRepository;
+import com.svastik.workoutextract.ExtractionJobRepository;
 
 @Service
 public class VideoExtractionService {
@@ -18,6 +25,9 @@ public class VideoExtractionService {
     private final ExtractionJobRepository extractionJobRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+
+    @Value("${google.api.key}")
+    private String apiKey;
 
     private static final Logger logger = LoggerFactory.getLogger(VideoExtractionService.class);
 
@@ -32,6 +42,10 @@ public class VideoExtractionService {
         this.extractionJobRepository = extractionJobRepository;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
+        
+        // API key is injected by Spring from application.properties
+        logger.info("[Config] API key loaded: {}", 
+            this.apiKey != null ? "present" : "not found");
     }
 
     // Service methods to be implemented
@@ -205,9 +219,9 @@ public class VideoExtractionService {
 
             // Call LLM API
             logger.info("[Extract] Calling LLM API...");
-            String apiKey = System.getenv("GOOGLE_API_KEY");
+            logger.info("[Extract] API key status: {}", apiKey != null ? "present" : "null");
             if (apiKey == null || apiKey.trim().isEmpty()) {
-                throw new RuntimeException("GOOGLE_API_KEY environment variable is not set");
+                throw new RuntimeException("GOOGLE_API_KEY is not configured");
             }
             String llmApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
             java.util.Map<String, Object> requestBody = java.util.Map.of(
@@ -761,9 +775,8 @@ public class VideoExtractionService {
             logger.info("[Extract] Estimation prompt length: {}", estimationPrompt.length());
 
             // Call LLM for estimation
-            String apiKey = System.getenv("GOOGLE_API_KEY");
             if (apiKey == null || apiKey.trim().isEmpty()) {
-                throw new RuntimeException("GOOGLE_API_KEY environment variable is not set");
+                throw new RuntimeException("GOOGLE_API_KEY is not configured");
             }
             String llmApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
             java.util.Map<String, Object> requestBody = java.util.Map.of(
