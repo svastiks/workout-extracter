@@ -1,4 +1,4 @@
-# Workout Extracter
+# Workout Extracter (in-progress/not-deployed yet)
 
 A full-stack application that extracts workout routines from YouTube fitness videos using AI.
 
