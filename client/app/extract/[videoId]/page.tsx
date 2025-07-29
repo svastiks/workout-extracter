@@ -98,9 +98,9 @@ export default function WorkoutExtractPage() {
       <header className="bg-black border-b border-gray-800 sticky top-0 z-50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/catalog" className="flex items-center gap-2">
+            <Link href={`/catalog/${workoutData.creator.id}`} className="flex items-center gap-2">
               <ArrowLeft className="w-5 h-5 text-gray-400" />
-              <span className="text-gray-400 hover:text-white transition-colors">Back to Catalog</span>
+              <span className="text-gray-400 hover:text-white transition-colors">Back to {workoutData.creator.name}</span>
             </Link>
             <div className="flex items-center gap-3">
               <Button
