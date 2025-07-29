@@ -13,12 +13,17 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/v1/**",
-                    "/api/auth/**"
-                ).permitAll()
-                .requestMatchers("/api/v1/me/**").authenticated()
+                .requestMatchers("/api/v1/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/login", "/oauth2/**").permitAll()
                 .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .successHandler(authenticationSuccessHandler)
+                .loginPage("/login")
+            )
+            .logout(logout -> logout
+                .logoutSuccessUrl("/")
             );
         return http.build();
     }

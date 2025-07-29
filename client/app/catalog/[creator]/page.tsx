@@ -54,49 +54,67 @@ export default function CreatorPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Creator Header */}
         <div className="mb-12">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <div className="flex items-start gap-6">
+          <Card className="bg-gray-900 border-gray-800 p-8">
+            <div className="flex items-center gap-8">
+              <div className="relative flex-shrink-0">
                 <Image
                   src={creatorData.profileImageUrl || "/placeholder.svg"}
                   alt={creatorData.name}
-                  width={100}
-                  height={100}
-                  className="rounded-full"
+                  width={120}
+                  height={120}
+                  className="rounded-full w-30 h-30 object-cover"
                 />
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <CardTitle className="text-3xl text-white">{creatorData.name}</CardTitle>
-                  </div>
-                  <Badge className="bg-gray-800 text-gray-300 border-gray-700 mb-4">{creatorData.youtubeChannelId}</Badge>
-                  <p className="text-gray-400 max-w-2xl">Creator ID: {creatorData.id}</p>
-                </div>
               </div>
-            </CardHeader>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <CardTitle className="text-4xl text-white font-bold">{creatorData.name}</CardTitle>
+                </div>
+                <Link 
+                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(creatorData.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  <span>Find him on YouTube</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
           </Card>
         </div>
+        
         {/* Videos Section */}
         <div>
-          <h2 className="text-2xl text-white mb-4">Videos</h2>
+          <h2 className="text-3xl text-white font-bold mb-8">Latest Analyzed Videos</h2>
           {videos.length === 0 ? (
             <div className="text-gray-400">No videos found for this creator.</div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videos.map((video) => (
-                <Card key={video.id} className="bg-gray-900 border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white text-lg">{video.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                <Card key={video.id} className="bg-gray-900 border-gray-800 overflow-hidden hover:bg-gray-800 transition-all cursor-pointer group">
+                  <div className="relative">
                     <Image
                       src={video.thumbnailUrl || "/placeholder.svg"}
                       alt={video.title}
-                      width={320}
-                      height={180}
-                      className="rounded mb-2"
+                      width={400}
+                      height={225}
+                      className="w-full h-48 object-cover"
                     />
-                    <p className="text-gray-400 text-sm mb-2">YouTube ID: {video.youtubeVideoId}</p>
-                    <Link href={`/extract/${video.youtubeVideoId}`} className="text-blue-400 hover:underline">View Details</Link>
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="text-white font-semibold text-lg mb-3 line-clamp-2 group-hover:text-gray-300 transition-colors">
+                      {video.title}
+                    </h3>
+                    <Button 
+                      className="w-full bg-white hover:bg-gray-200 text-black font-medium"
+                      asChild
+                    >
+                      <Link href={`/extract/${video.youtubeVideoId}`}>
+                        View Workout
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
