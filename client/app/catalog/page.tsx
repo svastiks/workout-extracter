@@ -8,18 +8,59 @@ import { ArrowLeft, Search, Star, Users } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { getCreators, Creator } from "@/services/api"
+import { getCreators, getVideosByCreatorId, Creator } from "@/services/api"
 
 export default function CatalogPage() {
   const [creators, setCreators] = useState<Creator[]>([]);
+  const [filteredCreators, setFilteredCreators] = useState<Creator[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getCreators()
-      .then(data => { setCreators(data); setLoading(false); })
-      .catch(() => { setError("Failed to load creators"); setLoading(false); });
+    const fetchCreatorsWithVideoCounts = async () => {
+      try {
+        const creatorsData = await getCreators();
+        // Fetch video counts for each creator
+        const creatorsWithVideoCounts = await Promise.all(
+          creatorsData.map(async (creator) => {
+            try {
+              const videos = await getVideosByCreatorId(creator.id);
+              return {
+                ...creator,
+                videoCount: videos.length
+              };
+            } catch (error) {
+              console.error(`Failed to fetch videos for creator ${creator.name}:`, error);
+              return {
+                ...creator,
+                videoCount: 0
+              };
+            }
+          })
+        );
+        setCreators(creatorsWithVideoCounts);
+        setLoading(false);
+      } catch (error) {
+        setError("Failed to load creators");
+        setLoading(false);
+      }
+    };
+
+    fetchCreatorsWithVideoCounts();
   }, []);
+
+  // Filter creators based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCreators(creators);
+    } else {
+      const filtered = creators.filter(creator =>
+        creator.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredCreators(filtered);
+    }
+  }, [searchQuery, creators]);
 
   if (loading) return <div className="text-center text-white py-20">Loading creators...</div>;
   if (error) return <div className="text-center text-red-500 py-20">{error}</div>;
@@ -58,57 +99,62 @@ export default function CatalogPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 placeholder="Search creators..."
-                className="pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-gray-600"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-gray-600 rounded-md"
               />
             </div>
           </div>
         </div>
 
         {/* Creator Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {creators.map((creator) => (
-            <Link key={creator.id} href={`/catalog/${creator.id}`}>
-              <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800 transition-all cursor-pointer group h-full">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start gap-4">
-                    <div className="relative flex-shrink-0">
-                      <Image
-                        src={creator.profileImageUrl || "/placeholder.svg"}
-                        alt={creator.name}
-                        width={60}
-                        height={60}
-                        className="rounded-full"
-                      />
+        {filteredCreators.length === 0 && searchQuery.trim() ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400 text-lg">No creators found matching "{searchQuery}"</p>
+            <p className="text-gray-500 text-sm mt-2">Try a different search term</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCreators.map((creator) => (
+              <Link key={creator.id} href={`/catalog/${creator.id}`}>
+                <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800 transition-all cursor-pointer group h-full">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start gap-4">
+                      <div className="relative flex-shrink-0">
+                        <Image
+                          src={creator.profileImageUrl || "/placeholder.svg"}
+                          alt={creator.name}
+                          width={80}
+                          height={80}
+                          className="rounded-full w-20 h-20 object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-white text-xl font-bold group-hover:text-gray-300 transition-colors truncate mb-2">
+                          {creator.name}
+                        </CardTitle>
+                        <p className="text-gray-400 text-sm mb-3">
+                          {creator.videoCount || 0} videos analyzed
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-white text-lg group-hover:text-gray-300 transition-colors truncate">
-                        {creator.name}
-                      </CardTitle>
-                      <CardDescription className="text-gray-400 text-sm">
-                        {creator.youtubeChannelId}
-                      </CardDescription>
-                      <Badge variant="secondary" className="bg-gray-800 text-gray-300 border-gray-700 mt-2">
-                        {/* Add specialty if available */}
-                      </Badge>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center justify-between">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-white hover:bg-gray-800 p-0 h-auto font-medium"
+                      >
+                        View Videos →
+                      </Button>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-gray-400 text-sm mb-3 line-clamp-3">Creator ID: {creator.id}</p>
-                  <div className="flex items-center justify-between text-sm">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-gray-400 hover:text-white hover:bg-gray-800 p-0 h-auto"
-                    >
-                      View Videos →
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="mt-16 text-center">
