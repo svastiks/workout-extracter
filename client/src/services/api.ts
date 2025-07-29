@@ -72,14 +72,10 @@ export async function getExtractionStatus(jobId: string): Promise<ExtractionJob>
   return res.json();
 };
 
-export async function getWorkoutDetails(videoId: string): Promise<Workout> {
-  const res = await fetch(`${API_BASE_URL}/workouts/${videoId}`);
-  if (!res.ok) throw new Error("Workout not found");
-  return res.json();
-};
+
 
 export async function getWorkoutByYoutubeId(youtubeVideoId: string): Promise<Workout> {
-  const res = await fetch(`${API_BASE_URL}/workouts/youtube/${youtubeVideoId}`);
+  const res = await fetch(`${API_BASE_URL}/workouts/${youtubeVideoId}`);
   if (!res.ok) throw new Error("Workout not found");
   return res.json();
 };

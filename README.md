@@ -14,6 +14,17 @@ A full-stack application that extracts workout routines from YouTube fitness vid
 - **AI**: Google Gemini API for workout extraction
 - **Video Processing**: yt-dlp for YouTube data extraction
 
+## API Endpoints
+
+- POST /workouts/extract
+
+- GET /workouts/extract/status/{jobId}
+- GET /workouts/{youtubeVideoId}
+
+- GET /creators
+- GET /creators/{id}
+- GET /creators/{creatorId}/videos
+
 ## Quick Start
 
 ### Prerequisites

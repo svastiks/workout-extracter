@@ -73,14 +73,9 @@ public class WorkoutExtractionController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Job not found")));
     }
 
-    @GetMapping("/{videoId}")
-    public ResponseEntity<?> getWorkoutById(@PathVariable Long videoId) {
-        return videoRepository.findById(videoId)
-                .<ResponseEntity<?>>map(video -> ResponseEntity.ok(video))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Video not found")));
-    }
 
-    @GetMapping("/youtube/{youtubeVideoId}")
+
+    @GetMapping("/{youtubeVideoId}")
     public ResponseEntity<?> getWorkoutByYoutubeVideoId(@PathVariable String youtubeVideoId) {
         return videoRepository.findByYoutubeVideoId(youtubeVideoId)
                 .<ResponseEntity<?>>map(video -> ResponseEntity.ok(video))
