@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Clock, Users, Target, ArrowLeft, Download, Share2, Copy, Check, ChevronDown, ChevronUp } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -32,7 +33,7 @@ export default function WorkoutExtractPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedExercise, setCopiedExercise] = useState<number | null>(null)
   const [copiedFull, setCopiedFull] = useState(false)
-  const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set())
+  const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set([0]))
   const { toast } = useToast()
 
   useEffect(() => {
@@ -104,23 +105,21 @@ export default function WorkoutExtractPage() {
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
+                className="border-gray-600 text-white hover:bg-white hover:text-black bg-transparent px-4 py-2 h-10 font-medium"
                 onClick={copyFullWorkout}
               >
-                {copiedFull ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copiedFull ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
                 {copiedFull ? "Copied!" : "Copy Workout"}
               </Button>
               <Button
                 variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
+                className="border-gray-600 text-white hover:bg-white hover:text-black bg-transparent px-4 py-2 h-10 font-medium"
               >
-                <Share2 className="w-4 h-4 mr-2" />
+                <Share2 className="w-5 h-5 mr-2" />
                 Share
               </Button>
-              <Button size="sm" className="bg-white hover:bg-gray-200 text-black">
-                <Download className="w-4 h-4 mr-2" />
+              <Button className="bg-white hover:bg-gray-200 text-black px-4 py-2 h-10 font-medium">
+                <Download className="w-5 h-5 mr-2" />
                 Export PDF
               </Button>
             </div>
@@ -129,81 +128,86 @@ export default function WorkoutExtractPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Video Info */}
-        <Card className="bg-gray-900 border-gray-800 mb-8">
-          <CardHeader>
-            <div className="flex items-start gap-4">
-              <Image
-                src="/placeholder.svg?height=80&width=80"
-                alt={workoutData.creator.name}
-                width={60}
-                height={60}
-                className="rounded-full"
-              />
+        {/* Workout Header */}
+        <div className="mb-8">
+          <Card className="bg-gray-900 border-gray-800 p-6">
+            <div className="flex items-start gap-6">
+              <div className="relative flex-shrink-0">
+                <Image
+                  src={workoutData.creator.profileImageUrl || "/placeholder.svg"}
+                  alt={workoutData.creator.name}
+                  width={80}
+                  height={80}
+                  className="rounded-full w-20 h-20 object-cover"
+                />
+              </div>
               <div className="flex-1">
-                <CardTitle className="text-2xl text-white mb-2 flex items-center gap-2">
-                  🏋️ {workoutData.title}
-                </CardTitle>
-                <CardDescription className="text-gray-300 text-lg mb-4">
-                  👨‍🏫 Created by {workoutData.creator.name}
-                </CardDescription>
+                <h1 className="text-3xl font-bold text-white mb-2">{workoutData.title}</h1>
+                <p className="text-gray-300 text-lg mb-4">Created by {workoutData.creator.name}</p>
                 <div className="flex flex-wrap gap-3">
-                  <Badge className="bg-gray-800 text-gray-300 border-gray-700">
+                  <Badge className="bg-gray-800 text-gray-300 border-gray-700 px-3 py-1">
                     <Clock className="w-3 h-3 mr-1" />
-                    ⏱️ {workoutData.duration}
+                    {workoutData.duration || "12 minutes"}
                   </Badge>
-                  <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
-                    <Target className="w-3 h-3 mr-1" />🎯 {workoutData.difficulty}
+                  <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 px-3 py-1">
+                    <Target className="w-3 h-3 mr-1" />
+                    {workoutData.difficulty || "Intermediate"}
                   </Badge>
-                  <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
-                    <Users className="w-3 h-3 mr-1" />💪 {workoutData.workoutData?.workoutType || ''}
+                  <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 px-3 py-1">
+                    <Users className="w-3 h-3 mr-1" />
+                    {workoutData.workoutData?.workoutType || "Push Day"}
                   </Badge>
                 </div>
               </div>
             </div>
-          </CardHeader>
-        </Card>
+          </Card>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Workout Details */}
+          {/* Workout Routine */}
           <div className="lg:col-span-2">
             <Card className="bg-gray-900 border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-xl text-white flex items-center gap-2">📋 Workout Routine</CardTitle>
-                <CardDescription className="text-gray-300">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-2xl text-white flex items-center gap-3 font-bold">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Workout Routine
+                </CardTitle>
+                <CardDescription className="text-gray-300 text-base">
                   Click on exercises to expand details • Copy individual exercises or the full workout
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-0 space-y-4">
                 {workoutData.workoutData?.exercises?.map((exercise, index) => (
-                  <Card key={index} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-all">
+                  <Card key={index} className="bg-gray-800 border-gray-700">
                     <CardContent className="p-4">
                       <div
                         className="flex items-center justify-between cursor-pointer"
                         onClick={() => toggleExercise(index)}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-2xl">{exercise.emoji}</span>
+                          <span className="text-2xl">🏋️</span>
                           <div>
-                            <h3 className="text-lg font-semibold text-white">
+                            <h3 className="text-white font-semibold text-lg">
                               {index + 1}. {exercise.name}
                             </h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge className={getDifficultyColor(exercise.difficulty)}>{exercise.difficulty}</Badge>
-                            </div>
+                            <Badge className="bg-red-500/20 text-red-300 border-red-500/30 mt-1 px-3 py-1 text-xs">
+                              Hard
+                            </Badge>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-gray-400 hover:text-white"
+                            className="text-gray-400 hover:text-white p-1 h-auto"
                             onClick={(e) => {
-                              e.stopPropagation()
-                              copyExercise(exercise, index)
+                              e.stopPropagation();
+                              copyExercise(exercise, index);
                             }}
                           >
-                            {copiedExercise === index ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            <Copy className="w-4 h-4" />
                           </Button>
                           {expandedExercises.has(index) ? (
                             <ChevronUp className="w-5 h-5 text-gray-400" />
@@ -216,23 +220,25 @@ export default function WorkoutExtractPage() {
                       {expandedExercises.has(index) && (
                         <div className="mt-4 pt-4 border-t border-gray-600">
                           <div className="grid grid-cols-3 gap-4 mb-4">
-                            <div className="bg-gray-700 rounded-lg p-3 text-center">
-                              <div className="text-white font-semibold text-lg">{exercise.sets}</div>
+                            <div className="bg-gray-700 rounded-lg p-4 text-center">
+                              <div className="text-white font-semibold text-xl">{exercise.sets}</div>
                               <div className="text-gray-400 text-sm">Sets</div>
                             </div>
-                            <div className="bg-gray-700 rounded-lg p-3 text-center">
-                              <div className="text-white font-semibold text-lg">{exercise.reps}</div>
+                            <div className="bg-gray-700 rounded-lg p-4 text-center">
+                              <div className="text-white font-semibold text-xl">{exercise.reps}</div>
                               <div className="text-gray-400 text-sm">Reps</div>
                             </div>
-                            <div className="bg-gray-700 rounded-lg p-3 text-center">
-                              <div className="text-white font-semibold text-lg">{exercise.rest}</div>
+                            <div className="bg-gray-700 rounded-lg p-4 text-center">
+                              <div className="text-white font-semibold text-xl">{exercise.rest}</div>
                               <div className="text-gray-400 text-sm">Rest</div>
                             </div>
                           </div>
-                          <div className="bg-gray-700 rounded-lg p-3">
-                            <h4 className="text-white font-medium mb-2 flex items-center gap-2">💡 Exercise Notes</h4>
-                            <p className="text-gray-300 text-sm">{exercise.notes}</p>
-                          </div>
+                          {exercise.notes && (
+                            <div className="bg-gray-700 rounded-lg p-4">
+                              <h4 className="text-white font-medium mb-2 flex items-center gap-2">💡 Exercise Notes</h4>
+                              <p className="text-gray-300 text-sm">{exercise.notes}</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </CardContent>
@@ -247,26 +253,31 @@ export default function WorkoutExtractPage() {
             {/* Quick Actions */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center gap-2">⚡ Quick Actions</CardTitle>
+                <CardTitle className="text-lg text-white flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Quick Actions
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full bg-white hover:bg-gray-200 text-black" onClick={copyFullWorkout}>
+                <Button className="w-full bg-white hover:bg-gray-200 text-black font-medium" onClick={copyFullWorkout}>
                   {copiedFull ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                  {copiedFull ? "Copied! 🎉" : "Copy Full Workout 📋"}
+                  {copiedFull ? "Copied!" : "Copy Full Workout"}
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Export as PDF 📄
+                  Export as PDF
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
                 >
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share Workout 🔗
+                  Share Workout
                 </Button>
               </CardContent>
             </Card>
@@ -274,12 +285,15 @@ export default function WorkoutExtractPage() {
             {/* Target Muscles */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center gap-2">🎯 Target Muscles</CardTitle>
+                <CardTitle className="text-lg text-white flex items-center gap-2">
+                  <span>🎯</span>
+                  Target Muscles
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {(workoutData.workoutData?.targetMuscles || []).map((muscle, index) => (
-                    <Badge key={index} variant="secondary" className="bg-gray-800 text-gray-300 border-gray-700">
+                    <Badge key={index} variant="secondary" className="bg-gray-800 text-gray-300 border-gray-700 px-4 py-2 text-base">
                       💪 {muscle}
                     </Badge>
                   ))}
@@ -290,41 +304,19 @@ export default function WorkoutExtractPage() {
             {/* Equipment */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center gap-2">🛠️ Equipment Needed</CardTitle>
+                <CardTitle className="text-lg text-white flex items-center gap-2">
+                  <span>🛠️</span>
+                  Equipment Needed
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {(workoutData.workoutData?.equipment || []).map((item, index) => (
-                    <div key={index} className="flex items-center gap-2 text-gray-300">
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                      {item}
+                    <div key={index} className="flex items-center gap-3 text-gray-300 text-base">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      {item.charAt(0).toUpperCase() + item.slice(1)}
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Workout Summary */}
-            <Card className="bg-gray-900 border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-lg text-white flex items-center gap-2">📊 Workout Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">🏋️ Total Exercises</span>
-                  <span className="text-white font-semibold">{(workoutData.workoutData?.exercises || []).length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">⏱️ Estimated Time</span>
-                  <span className="text-white font-semibold">{workoutData.totalTime}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">🎯 Difficulty</span>
-                  <span className="text-white font-semibold">{workoutData.difficulty}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">💪 Workout Type</span>
-                  <span className="text-white font-semibold">{workoutData.workoutData?.workoutType || ''}</span>
                 </div>
               </CardContent>
             </Card>
