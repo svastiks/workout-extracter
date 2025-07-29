@@ -114,42 +114,38 @@ export default function CatalogPage() {
             <p className="text-gray-500 text-sm mt-2">Try a different search term</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredCreators.map((creator) => (
               <Link key={creator.id} href={`/catalog/${creator.id}`}>
-                <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800 transition-all cursor-pointer group h-full">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start gap-4">
-                      <div className="relative flex-shrink-0">
-                        <Image
-                          src={creator.profileImageUrl || "/placeholder.svg"}
-                          alt={creator.name}
-                          width={80}
-                          height={80}
-                          className="rounded-full w-20 h-20 object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-white text-xl font-bold group-hover:text-gray-300 transition-colors truncate mb-2">
-                          {creator.name}
-                        </CardTitle>
-                        <p className="text-gray-400 text-sm mb-3">
-                          {creator.videoCount || 0} videos analyzed
-                        </p>
-                      </div>
+                <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800 transition-all cursor-pointer group h-full min-h-[200px] p-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="relative flex-shrink-0">
+                      <Image
+                        src={creator.profileImageUrl || "/placeholder.svg"}
+                        alt={creator.name}
+                        width={100}
+                        height={100}
+                        className="rounded-full w-24 h-24 object-cover"
+                      />
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex items-center justify-between">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-400 hover:text-white hover:bg-gray-800 p-0 h-auto font-medium"
-                      >
-                        View Videos →
-                      </Button>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-white text-xl font-bold group-hover:text-gray-300 transition-colors truncate">
+                        {creator.name}
+                      </CardTitle>
                     </div>
-                  </CardContent>
+                  </div>
+                  <div className="flex items-center justify-between mt-auto">
+                    <p className="text-gray-400 text-sm">
+                      {creator.videoCount || 0} videos
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-400 hover:text-white hover:bg-gray-800 p-0 h-auto font-medium text-sm"
+                    >
+                      View Videos →
+                    </Button>
+                  </div>
                 </Card>
               </Link>
             ))}
@@ -158,18 +154,16 @@ export default function CatalogPage() {
 
         {/* Stats */}
         <div className="mt-16 text-center">
-          <div className="grid md:grid-cols-3 gap-8 max-w-2xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-xl mx-auto">
             <div>
               <div className="text-3xl font-bold text-white mb-2">{creators.length}</div>
               <div className="text-gray-400">Fitness Creators</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-white mb-2">2.5K+</div>
+              <div className="text-3xl font-bold text-white mb-2">
+                {creators.reduce((total, creator) => total + (creator.videoCount || 0), 0)}
+              </div>
               <div className="text-gray-400">Total Videos</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-white mb-2">50M+</div>
-              <div className="text-gray-400">Combined Subscribers</div>
             </div>
           </div>
         </div>
