@@ -1,8 +1,7 @@
 services:
   - type: web
     name: workout-extract-api
-    buildCommand: cd server && ./mvnw clean install -DskipTests
-    startCommand: cd server && java -jar target/workoutextract-1.0-SNAPSHOT.jar
+    env: docker
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: production
