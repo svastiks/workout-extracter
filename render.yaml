@@ -4,8 +4,6 @@ services:
     buildCommand: cd server && ./mvnw clean install -DskipTests
     startCommand: cd server && java -jar target/workoutextract-1.0-SNAPSHOT.jar
     envVars:
-      - key: JAVA_VERSION
-        value: "17"
       - key: SPRING_PROFILES_ACTIVE
         value: production
       - key: GOOGLE_API_KEY
