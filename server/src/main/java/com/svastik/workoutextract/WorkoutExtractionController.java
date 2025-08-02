@@ -68,6 +68,30 @@ public class WorkoutExtractionController {
         return extractionJobRepository.findById(jobId)
                 .<ResponseEntity<?>>map(job -> {
                     logger.info("[Extract] Job status: {}", job.getStatus());
+                    
+                    // If job is complete and has a result video ID, include the YouTube video ID
+                    if ("COMPLETE".equals(job.getStatus()) && job.getResultVideoId() != null) {
+                        logger.info("[Extract] Job is COMPLETE with resultVideoId: {}", job.getResultVideoId());
+                        Optional<Video> video = videoRepository.findById(job.getResultVideoId());
+                        if (video.isPresent()) {
+                            logger.info("[Extract] Found video with youtubeVideoId: {}", video.get().getYoutubeVideoId());
+                            Map<String, Object> response = Map.of(
+                                "id", job.getId(),
+                                "youtubeVideoId", job.getYoutubeVideoId(),
+                                "status", job.getStatus(),
+                                "progress", job.getProgress(),
+                                "resultVideoId", job.getResultVideoId(),
+                                "resultYoutubeVideoId", video.get().getYoutubeVideoId()
+                            );
+                            logger.info("[Extract] Returning response with resultYoutubeVideoId: {}", video.get().getYoutubeVideoId());
+                            return ResponseEntity.ok(response);
+                        } else {
+                            logger.warn("[Extract] Video not found for resultVideoId: {}", job.getResultVideoId());
+                        }
+                    } else {
+                        logger.info("[Extract] Job status: {}, resultVideoId: {}", job.getStatus(), job.getResultVideoId());
+                    }
+                    
                     return ResponseEntity.ok(job);
                 })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Job not found")));

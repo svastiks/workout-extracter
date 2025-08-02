@@ -6,6 +6,7 @@ export interface ExtractionJob {
   status: string;
   progress: number;
   resultVideoId?: number;
+  resultYoutubeVideoId?: string;
   errorMessage?: string;
 }
 
@@ -30,6 +31,8 @@ export interface Workout {
     }>;
     workoutType: string | null;
     targetMuscles: string[];
+    llmAdjusted?: boolean;
+    adjustmentReason?: string;
   };
   creator: {
     id: number;
@@ -69,7 +72,9 @@ export async function initiateExtraction(url: string) {
 export async function getExtractionStatus(jobId: string): Promise<ExtractionJob> {
   const res = await fetch(`${API_BASE_URL}/workouts/extract/status/${jobId}`);
   if (!res.ok) throw new Error("Failed to get extraction status");
-  return res.json();
+  const data = await res.json();
+  console.log("[API] getExtractionStatus response:", data);
+  return data;
 };
 
 

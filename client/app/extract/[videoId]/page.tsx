@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Clock, Users, Target, ArrowLeft, Download, Share2, Copy, Check, ChevronDown, ChevronUp } from "lucide-react"
+import { Clock, Users, Target, ArrowLeft, Download, Share2, Copy, Check, ChevronDown, ChevronUp, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
@@ -34,6 +34,7 @@ export default function WorkoutExtractPage() {
   const [copiedExercise, setCopiedExercise] = useState<number | null>(null)
   const [copiedFull, setCopiedFull] = useState(false)
   const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set([0]))
+  const [showLlmAdjustedModal, setShowLlmAdjustedModal] = useState(false);
   const { toast } = useToast()
 
   useEffect(() => {
@@ -46,12 +47,24 @@ export default function WorkoutExtractPage() {
         }
         setWorkoutData(data);
         setLoading(false);
+        
+        // Show LLM adjusted modal if workout was adjusted
+        if (data.workoutData?.llmAdjusted) {
+          setShowLlmAdjustedModal(true);
+        }
       })
       .catch(() => {
         setError("Workout not found");
         setLoading(false);
       });
   }, [videoId]);
+
+  // Additional useEffect to handle modal display after workoutData is set
+  useEffect(() => {
+    if (workoutData?.workoutData?.llmAdjusted) {
+      setShowLlmAdjustedModal(true);
+    }
+  }, [workoutData]);
 
   const toggleExercise = (index: number) => {
     const newExpanded = new Set(expandedExercises)
@@ -91,6 +104,8 @@ export default function WorkoutExtractPage() {
   if (loading) return <div className="text-center text-white py-20">Loading workout...</div>;
   if (error) return <div className="text-center text-red-500 py-20">{error}</div>;
   if (!workoutData) return null;
+
+  const isLlmAdjusted = workoutData.workoutData?.llmAdjusted;
 
   return (
     <div className="bg-black min-h-screen">
@@ -142,7 +157,14 @@ export default function WorkoutExtractPage() {
                 />
               </div>
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white mb-2">{workoutData.title}</h1>
+                <h1 className="text-3xl font-bold text-white mb-2">
+                  {workoutData.title}
+                  {workoutData.workoutData?.llmAdjusted && (
+                    <span className="ml-3 text-sm bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 px-3 py-1 rounded-full">
+                      LLM Adjusted Workout (missing data)
+                    </span>
+                  )}
+                </h1>
                 <p className="text-gray-300 text-lg mb-4">Created by {workoutData.creator.name}</p>
                 <div className="flex flex-wrap gap-3">
                   <Badge className="bg-gray-800 text-gray-300 border-gray-700 px-3 py-1">
@@ -179,71 +201,104 @@ export default function WorkoutExtractPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0 space-y-4">
-                {workoutData.workoutData?.exercises?.map((exercise, index) => (
-                  <Card key={index} className="bg-gray-800 border-gray-700">
-                    <CardContent className="p-4">
-                      <div
-                        className="flex items-center justify-between cursor-pointer"
-                        onClick={() => toggleExercise(index)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">🏋️</span>
-                          <div>
-                            <h3 className="text-white font-semibold text-lg">
-                              {index + 1}. {exercise.name}
-                            </h3>
-                            <Badge className="bg-red-500/20 text-red-300 border-red-500/30 mt-1 px-3 py-1 text-xs">
-                              Hard
-                            </Badge>
+                {workoutData.workoutData?.exercises && workoutData.workoutData.exercises.length > 0 ? (
+                  workoutData.workoutData.exercises.map((exercise, index) => (
+                    <Card key={index} className="bg-gray-800 border-gray-700">
+                      <CardContent className="p-4">
+                        <div
+                          className="flex items-center justify-between cursor-pointer"
+                          onClick={() => toggleExercise(index)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{exercise.emoji || "🏋️"}</span>
+                            <div>
+                              <h3 className="text-white font-semibold text-lg">
+                                {index + 1}. {exercise.name}
+                              </h3>
+                              <Badge className={`${getDifficultyColor(exercise.difficulty || "Medium")} mt-1 px-3 py-1 text-xs`}>
+                                {exercise.difficulty || "Medium"}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-gray-400 hover:text-white p-1 h-auto"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyExercise(exercise, index);
+                              }}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                            {expandedExercises.has(index) ? (
+                              <ChevronUp className="w-5 h-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-gray-400" />
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-gray-400 hover:text-white p-1 h-auto"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copyExercise(exercise, index);
-                            }}
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
-                          {expandedExercises.has(index) ? (
-                            <ChevronUp className="w-5 h-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-gray-400" />
-                          )}
-                        </div>
-                      </div>
 
-                      {expandedExercises.has(index) && (
-                        <div className="mt-4 pt-4 border-t border-gray-600">
-                          <div className="grid grid-cols-3 gap-4 mb-4">
-                            <div className="bg-gray-700 rounded-lg p-4 text-center">
-                              <div className="text-white font-semibold text-xl">{exercise.sets}</div>
-                              <div className="text-gray-400 text-sm">Sets</div>
+                        {expandedExercises.has(index) && (
+                          <div className="mt-4 pt-4 border-t border-gray-600">
+                            <div className="grid grid-cols-3 gap-4 mb-4">
+                              <div className="bg-gray-700 rounded-lg p-4 text-center">
+                                <div className="text-white font-semibold text-xl">{exercise.sets || "N/A"}</div>
+                                <div className="text-gray-400 text-sm">Sets</div>
+                              </div>
+                              <div className="bg-gray-700 rounded-lg p-4 text-center">
+                                <div className="text-white font-semibold text-xl">{exercise.reps || "N/A"}</div>
+                                <div className="text-gray-400 text-sm">Reps</div>
+                              </div>
+                              <div className="bg-gray-700 rounded-lg p-4 text-center">
+                                <div className="text-white font-semibold text-xl">{exercise.rest || "N/A"}</div>
+                                <div className="text-gray-400 text-sm">Rest</div>
+                              </div>
                             </div>
-                            <div className="bg-gray-700 rounded-lg p-4 text-center">
-                              <div className="text-white font-semibold text-xl">{exercise.reps}</div>
-                              <div className="text-gray-400 text-sm">Reps</div>
-                            </div>
-                            <div className="bg-gray-700 rounded-lg p-4 text-center">
-                              <div className="text-white font-semibold text-xl">{exercise.rest}</div>
-                              <div className="text-gray-400 text-sm">Rest</div>
-                            </div>
+                            {exercise.notes && (
+                              <div className="bg-gray-700 rounded-lg p-4">
+                                <h4 className="text-white font-medium mb-2 flex items-center gap-2">💡 Exercise Notes</h4>
+                                <p className="text-gray-300 text-sm">{exercise.notes}</p>
+                              </div>
+                            )}
                           </div>
-                          {exercise.notes && (
-                            <div className="bg-gray-700 rounded-lg p-4">
-                              <h4 className="text-white font-medium mb-2 flex items-center gap-2">💡 Exercise Notes</h4>
-                              <p className="text-gray-300 text-sm">{exercise.notes}</p>
-                            </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    {(workoutData.workoutData as any)?.extractionFailed ? (
+                      <div>
+                        <div className="text-red-400 text-lg mb-4">⚠️ Video Analysis Failed</div>
+                        <p className="text-gray-500 text-sm">
+                          {(workoutData.workoutData as any)?.failureReason || "The video transcript was corrupted or unavailable, and AI analysis could not extract workout data from the video content."}
+                        </p>
+                        <p className="text-gray-400 text-xs mt-4">
+                          This could be due to:
+                        </p>
+                        <ul className="text-gray-500 text-xs mt-2 space-y-1">
+                          <li>• No transcript available for this video</li>
+                          <li>• Corrupted or unreadable transcript data</li>
+                          <li>• Video content not suitable for workout extraction</li>
+                        </ul>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-gray-400 text-lg mb-4">No exercises found</div>
+                        <p className="text-gray-500 text-sm">
+                          The workout extraction couldn't find any exercises in this video.
+                          {workoutData.workoutData?.llmAdjusted && (
+                            <span className="block mt-2 text-yellow-400">
+                              This workout was adjusted by AI due to corrupted transcript data.
+                            </span>
                           )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -292,11 +347,17 @@ export default function WorkoutExtractPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-3">
-                  {(workoutData.workoutData?.targetMuscles || []).map((muscle, index) => (
-                    <Badge key={index} variant="secondary" className="bg-gray-800 text-gray-300 border-gray-700 px-4 py-2 text-base">
-                      💪 {muscle}
-                    </Badge>
-                  ))}
+                  {workoutData.workoutData?.targetMuscles && workoutData.workoutData.targetMuscles.length > 0 ? (
+                    workoutData.workoutData.targetMuscles.map((muscle, index) => (
+                      <Badge key={index} variant="secondary" className="bg-gray-800 text-gray-300 border-gray-700 px-4 py-2 text-base">
+                        💪 {muscle}
+                      </Badge>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 text-base italic">
+                      No target muscles specified
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -311,18 +372,61 @@ export default function WorkoutExtractPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(workoutData.workoutData?.equipment || []).map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 text-gray-300 text-base">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      {item.charAt(0).toUpperCase() + item.slice(1)}
-                    </div>
-                  ))}
+                  {(() => {
+                    const equipment = workoutData.workoutData?.equipment;
+                    
+                    if (!equipment || equipment.length === 0) {
+                      return (
+                        <div className="text-gray-400 text-base italic">
+                          N/A
+                        </div>
+                      );
+                    }
+                    
+                    return equipment.map((item, index) => (
+                      <div key={index} className="flex items-center gap-3 text-gray-300 text-base">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        {item.charAt(0).toUpperCase() + item.slice(1)}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* LLM Adjusted Modal */}
+      {showLlmAdjustedModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-yellow-300" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">LLM Adjusted Workout</h3>
+                <p className="text-gray-400 text-sm">Due to corrupted transcript data</p>
+              </div>
+            </div>
+            <p className="text-gray-300 mb-6">
+              {(workoutData.workoutData as any)?.extractionFailed ? 
+                "The video transcript was corrupted or unavailable, and our AI could not analyze the video content to extract workout data. The system attempted multiple analysis methods but was unable to generate a reliable workout from this video." :
+                "The video transcript was corrupted or unavailable, so our AI has created an adjusted workout based on the video metadata. The exercises shown are educated guesses based on the video title and creator's typical content."
+              }
+            </p>
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setShowLlmAdjustedModal(false)}
+                className="flex-1 bg-white hover:bg-gray-200 text-black"
+              >
+                Got it
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
