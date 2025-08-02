@@ -33,6 +33,7 @@ export default function WorkoutExtractPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedExercise, setCopiedExercise] = useState<number | null>(null)
   const [copiedFull, setCopiedFull] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
   const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set([0]))
   const [showLlmAdjustedModal, setShowLlmAdjustedModal] = useState(false);
   const { toast } = useToast()
@@ -101,6 +102,18 @@ export default function WorkoutExtractPage() {
     }
   }
 
+  const copyWorkoutLink = async () => {
+    try {
+      const currentUrl = window.location.href;
+      await navigator.clipboard.writeText(currentUrl);
+      setCopiedLink(true);
+      toast({ title: "Link copied! 🔗", description: "Workout link copied to clipboard" });
+      setTimeout(() => setCopiedLink(false), 3000);
+    } catch (err) {
+      toast({ title: "Failed to copy link", description: "Please try again", variant: "destructive" });
+    }
+  }
+
 
 
   if (loading) return <div className="text-center text-white py-20">Loading workout...</div>;
@@ -131,9 +144,10 @@ export default function WorkoutExtractPage() {
               <Button
                 variant="outline"
                 className="border-gray-600 text-white hover:bg-white hover:text-black bg-transparent px-4 py-2 h-10 font-medium"
+                onClick={copyWorkoutLink}
               >
-                <Share2 className="w-5 h-5 mr-2" />
-                Share
+                {copiedLink ? <Check className="w-5 h-5 mr-2" /> : <Share2 className="w-5 h-5 mr-2" />}
+                {copiedLink ? "Link copied!" : "Share"}
               </Button>
 
             </div>
@@ -323,9 +337,10 @@ export default function WorkoutExtractPage() {
                 <Button
                   variant="outline"
                   className="w-full border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
+                  onClick={copyWorkoutLink}
                 >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Workout
+                  {copiedLink ? <Check className="w-4 h-4 mr-2" /> : <Share2 className="w-4 h-4 mr-2" />}
+                  {copiedLink ? "Link copied!" : "Share Workout"}
                 </Button>
               </CardContent>
             </Card>
