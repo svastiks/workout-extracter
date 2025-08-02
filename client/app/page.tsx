@@ -79,8 +79,9 @@ export default function HomePage() {
       const data = await initiateExtraction(url);
       console.log("[Extract] API call succeeded. Response:", data);
       if ('jobId' in data) {
-        // New extraction started, show a message or handle as needed
-        alert("Extraction started! Please wait for processing.");
+        // New extraction started, redirect to loading page
+        console.log("Redirecting to loading page with jobId:", data.jobId);
+        router.push(`/loading/${data.jobId}`);
       } else if ('id' in data && 'youtubeVideoId' in data) {
         console.log("Redirecting to: /extract/" + data.youtubeVideoId);
         router.push(`/extract/${data.youtubeVideoId}`);

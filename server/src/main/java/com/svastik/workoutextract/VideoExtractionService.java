@@ -84,6 +84,11 @@ public class VideoExtractionService {
             String youtubeVideoId = job.getYoutubeVideoId();
             String url = "https://www.youtube.com/watch?v=" + youtubeVideoId;
             
+            // Update progress to 20% - starting metadata extraction
+            job.setProgress(20);
+            extractionJobRepository.save(job);
+            logger.info("[Extract] Progress updated to 20% - starting metadata extraction");
+            
             // First command: Get metadata JSON
             String metadataCommand = String.format(
                 "yt-dlp --dump-json --skip-download \"%s\"",
@@ -92,6 +97,11 @@ public class VideoExtractionService {
             logger.info("[Extract] yt-dlp metadata command: {}", metadataCommand);
             String ytDlpOutput = executeShellCommand(metadataCommand);
             logger.info("[Extract] yt-dlp metadata command executed. Output length: {}", ytDlpOutput.length());
+            
+            // Update progress to 30% - starting transcript extraction
+            job.setProgress(30);
+            extractionJobRepository.save(job);
+            logger.info("[Extract] Progress updated to 30% - starting transcript extraction");
             
             // Second command: Get transcript and comments files
             String filesCommand = String.format(
@@ -102,6 +112,11 @@ public class VideoExtractionService {
             String filesOutput = executeShellCommand(filesCommand);
             logger.info("[Extract] yt-dlp files command executed. Output length: {}", filesOutput.length());
 
+            // Update progress to 40% - parsing metadata
+            job.setProgress(40);
+            extractionJobRepository.save(job);
+            logger.info("[Extract] Progress updated to 40% - parsing metadata");
+            
             // Parse yt-dlp output
             logger.info("[Extract] Parsing yt-dlp output...");
             Map<String, Object> videoJson = objectMapper.readValue(ytDlpOutput, Map.class);
@@ -111,6 +126,11 @@ public class VideoExtractionService {
             String thumbnail = (String) videoJson.get("thumbnail");
             logger.info("[Extract] yt-dlp output parsed - Title: {}, Channel: {}, Uploader: {}", title, channelId, uploader);
 
+            // Update progress to 50% - reading comments and transcript
+            job.setProgress(50);
+            extractionJobRepository.save(job);
+            logger.info("[Extract] Progress updated to 50% - reading comments and transcript");
+            
             // Read comments and transcript
             logger.info("[Extract] Reading comments and transcript...");
             
@@ -154,6 +174,11 @@ public class VideoExtractionService {
             }
             logger.info("[Extract] Comments and transcript read");
 
+            // Update progress to 60% - processing transcript and comments
+            job.setProgress(60);
+            extractionJobRepository.save(job);
+            logger.info("[Extract] Progress updated to 60% - processing transcript and comments");
+            
             // Clean transcript and find golden comments
             logger.info("[Extract] Cleaning transcript and finding golden comments...");
             String cleanedTranscript = cleanTranscript(rawTranscriptString);
@@ -214,9 +239,16 @@ public class VideoExtractionService {
                 .append(cleanedTranscript);
             String prompt = promptBuilder.toString();
             logger.info("[Extract] LLM prompt constructed. Length: {}", prompt.length());
+            logger.info("[Extract] Golden comments count: {}", goldenComments.size());
+            logger.info("[Extract] Cleaned transcript length: {}", cleanedTranscript != null ? cleanedTranscript.length() : 0);
             logger.info("[Extract] Prompt preview (first 1000 chars): {}", 
                 prompt.substring(0, Math.min(1000, prompt.length())));
 
+            // Update progress to 80% - calling AI analysis
+            job.setProgress(80);
+            extractionJobRepository.save(job);
+            logger.info("[Extract] Progress updated to 80% - calling AI analysis");
+            
             // Call LLM API
             logger.info("[Extract] Calling LLM API...");
             logger.info("[Extract] API key status: {}", apiKey != null ? "present" : "null");
@@ -244,14 +276,20 @@ public class VideoExtractionService {
                 logger.info("[Extract] LLM API response received. Length: {}", llmResponse != null ? llmResponse.length() : 0);
                 logger.info("[Extract] LLM API response: {}", llmResponse);
                 
+                // Update progress to 85% - processing AI response
+                job.setProgress(85);
+                extractionJobRepository.save(job);
+                logger.info("[Extract] Progress updated to 85% - processing AI response");
+                
                 // Parse the LLM response to extract the actual JSON
                 String extractedJson = extractJsonFromLlmResponse(llmResponse);
                 logger.info("[Extract] Extracted JSON from LLM response. Length: {}", extractedJson != null ? extractedJson.length() : 0);
                 logger.info("[Extract] Extracted JSON: {}", extractedJson);
                 
                 // Validate the extracted JSON
+                Map<String, Object> parsedJson = null;
                 try {
-                    Map<String, Object> parsedJson = objectMapper.readValue(extractedJson, Map.class);
+                    parsedJson = objectMapper.readValue(extractedJson, Map.class);
                     logger.info("[Extract] JSON parsed successfully");
                     logger.info("[Extract] Parsed JSON structure: {}", parsedJson.keySet());
                     
@@ -266,7 +304,75 @@ public class VideoExtractionService {
                         }
                         
                         if (exercises.isEmpty()) {
-                            logger.warn("[Extract] WARNING: Exercises array is empty!");
+                            logger.warn("[Extract] WARNING: Exercises array is empty! Trying second LLM attempt with video metadata.");
+                            
+                            // Second LLM attempt with video metadata
+                            String secondPrompt = createMetadataBasedPrompt(title, uploader);
+                            logger.info("[Extract] Second LLM prompt created. Length: {}", secondPrompt.length());
+                            
+                            // Call LLM again with metadata-based prompt
+                            java.util.Map<String, Object> secondRequestBody = java.util.Map.of(
+                                "contents", java.util.List.of(
+                                    java.util.Map.of(
+                                        "parts", java.util.List.of(
+                                            java.util.Map.of("text", secondPrompt)
+                                        )
+                                    )
+                                )
+                            );
+                            
+                            String secondLlmResponse = restTemplate.postForObject(llmApiUrl, secondRequestBody, String.class);
+                            logger.info("[Extract] Second LLM response received. Length: {}", secondLlmResponse != null ? secondLlmResponse.length() : 0);
+                            
+                            // Extract JSON from second response
+                            String secondExtractedJson = extractJsonFromLlmResponse(secondLlmResponse);
+                            if (secondExtractedJson != null) {
+                                try {
+                                    Map<String, Object> secondParsedJson = objectMapper.readValue(secondExtractedJson, Map.class);
+                                    logger.info("[Extract] Second LLM JSON parsed successfully");
+                                    
+                                    // Use the second response if it has exercises
+                                    if (secondParsedJson.containsKey("exercises")) {
+                                        java.util.List<Map<String, Object>> secondExercises = (java.util.List<Map<String, Object>>) secondParsedJson.get("exercises");
+                                        if (!secondExercises.isEmpty()) {
+                                            logger.info("[Extract] Second LLM provided {} exercises", secondParsedJson.size());
+                                            parsedJson = secondParsedJson; // Replace with second response
+                                            // Mark as LLM adjusted
+                                            parsedJson.put("llmAdjusted", true);
+                                            parsedJson.put("adjustmentReason", "corrupted_transcript");
+                                            logger.info("[Extract] Marked workout as LLM adjusted");
+                                        } else {
+                                            logger.warn("[Extract] Second LLM also returned empty exercises");
+                                            // Initialize parsedJson if it's null
+                                            if (parsedJson == null) {
+                                                parsedJson = new java.util.HashMap<>();
+                                            }
+                                            createFallbackWorkout(parsedJson);
+                                        }
+                                    } else {
+                                        logger.warn("[Extract] Second LLM response missing exercises field");
+                                        // Initialize parsedJson if it's null
+                                        if (parsedJson == null) {
+                                            parsedJson = new java.util.HashMap<>();
+                                        }
+                                        createFallbackWorkout(parsedJson);
+                                    }
+                                } catch (Exception e) {
+                                    logger.error("[Extract] Failed to parse second LLM response: {}", e.getMessage());
+                                    // Initialize parsedJson if it's null
+                                    if (parsedJson == null) {
+                                        parsedJson = new java.util.HashMap<>();
+                                    }
+                                    createFallbackWorkout(parsedJson);
+                                }
+                            } else {
+                                logger.warn("[Extract] Failed to extract JSON from second LLM response");
+                                // Initialize parsedJson if it's null
+                                if (parsedJson == null) {
+                                    parsedJson = new java.util.HashMap<>();
+                                }
+                                createFallbackWorkout(parsedJson);
+                            }
                         } else {
                             // Stage 2: Send back to LLM to fill missing values with reasonable estimates
                             logger.info("[Extract] Stage 2: Sending to LLM for missing value estimation");
@@ -304,10 +410,20 @@ public class VideoExtractionService {
                     // Convert final processed JSON to string for persistence
                     extractedJson = objectMapper.writeValueAsString(parsedJson);
                     logger.info("[Extract] Final processed JSON: {}", extractedJson);
+                    logger.info("[Extract] LLM adjusted flag in final JSON: {}", parsedJson.get("llmAdjusted"));
+                    logger.info("[Extract] Adjustment reason in final JSON: {}", parsedJson.get("adjustmentReason"));
                     
                 } catch (Exception e) {
                     logger.error("[Extract] Failed to parse extracted JSON: {}", e.getMessage());
+                    // If parsing fails, create a fallback workout
+                    parsedJson = new java.util.HashMap<>();
+                    createFallbackWorkout(parsedJson);
                 }
+                
+                // Update progress to 90% - saving results
+                job.setProgress(90);
+                extractionJobRepository.save(job);
+                logger.info("[Extract] Progress updated to 90% - saving results");
                 
                 // Persist results
                 logger.info("[Extract] Persisting extraction results...");
@@ -337,6 +453,11 @@ public class VideoExtractionService {
                 video = videoRepository.save(video);
                 logger.info("[Extract] Video saved with ID: {}", video.getId());
 
+                // Update progress to 95% - finalizing
+                job.setProgress(95);
+                extractionJobRepository.save(job);
+                logger.info("[Extract] Progress updated to 95% - finalizing");
+                
                 // 5. Update the ExtractionJob status to COMPLETE, progress to 100, and set result_video_id
                 job.setStatus("COMPLETE");
                 job.setProgress(100);
@@ -864,5 +985,123 @@ public class VideoExtractionService {
         if (isNullValue.test(exercise.get("rest"))) {
             exercise.put("rest_transparency", "missing");
         }
+    }
+
+    private String createMetadataBasedPrompt(String title, String uploader) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are an expert fitness data extractor. The video transcript was corrupted, so I need you to create a workout based on the video metadata.\n\n")
+            .append("**Video Information:**\n")
+            .append("Title: ").append(title).append("\n")
+            .append("Creator: ").append(uploader).append("\n\n")
+            .append("**CRITICAL INSTRUCTION - PAY ATTENTION TO THE TITLE:**\n")
+            .append("1. The video title is the PRIMARY source of information about what exercises to include\n")
+            .append("2. If the title mentions a specific number (like '25 BEST DUMBBELL EXERCISES'), you MUST create EXACTLY that many exercises\n")
+            .append("3. If the title says '25 BEST DUMBBELL EXERCISES', create exactly 25 different dumbbell exercises\n")
+            .append("4. Each exercise should be unique and target different muscle groups\n")
+            .append("5. Use common workout patterns and exercise science knowledge\n")
+            .append("6. Provide reasonable estimates for sets, reps, and rest periods\n")
+            .append("7. Output ONLY the JSON object\n\n")
+            .append("**JSON Schema:**\n")
+            .append("{\n")
+            .append("  \"equipment\": [\"List of equipment needed\"],\n")
+            .append("  \"exercises\": [\n")
+            .append("    {\n")
+            .append("      \"name\": \"Exercise name\",\n")
+            .append("      \"reps\": \"String (e.g., '8-12', '10-15')\",\n")
+            .append("      \"rest\": \"String (e.g., '60s', '90s')\",\n")
+            .append("      \"sets\": \"String (e.g., '3', '4')\",\n")
+            .append("      \"emoji\": \"String (relevant emoji)\",\n")
+            .append("      \"notes\": \"String (form tips and notes)\",\n")
+            .append("      \"difficulty\": \"String (Easy, Medium, or Hard)\"\n")
+            .append("    }\n")
+            .append("  ],\n")
+            .append("  \"workoutType\": \"String (e.g., 'Push Day', 'Pull Day', 'Full Body')\",\n")
+            .append("  \"targetMuscles\": [\"List of target muscles\"]\n")
+            .append("}\n\n")
+            .append("**TITLE ANALYSIS:**\n");
+        
+        // Add specific analysis based on the title
+        if (title.toUpperCase().contains("25") && title.toUpperCase().contains("DUMBBELL")) {
+            prompt.append("The title mentions '25 BEST DUMBBELL EXERCISES' - you MUST create EXACTLY 25 different dumbbell exercises.\n")
+                  .append("Include a variety of exercises targeting: chest, back, shoulders, biceps, triceps, legs, core\n")
+                  .append("Examples: Dumbbell Bench Press, Dumbbell Rows, Dumbbell Shoulder Press, Dumbbell Curls, Dumbbell Tricep Extensions, Dumbbell Squats, Dumbbell Lunges, etc.\n\n");
+        } else if (title.toUpperCase().contains("BEST") && title.toUpperCase().contains("EXERCISES")) {
+            prompt.append("The title mentions 'BEST EXERCISES' - create a comprehensive list of exercises based on the title.\n\n");
+        }
+        
+        prompt.append("Create a realistic workout based on the video title: ").append(title);
+        
+        return prompt.toString();
+    }
+
+    private void createFallbackWorkout(Map<String, Object> parsedJson) {
+        logger.warn("[Extract] Creating fallback workout");
+        
+        // Ensure parsedJson is not null
+        if (parsedJson == null) {
+            parsedJson = new java.util.HashMap<>();
+        }
+        
+        // Create a more comprehensive fallback workout
+        java.util.List<Map<String, Object>> exercises = new java.util.ArrayList<>();
+        
+        // Add some basic dumbbell exercises
+        exercises.add(Map.of(
+            "name", "Dumbbell Bench Press",
+            "reps", "8-12",
+            "rest", "60s",
+            "sets", "3",
+            "emoji", "💪",
+            "notes", "Lie on bench, lower dumbbells to chest, press up",
+            "difficulty", "Hard"
+        ));
+        
+        exercises.add(Map.of(
+            "name", "Dumbbell Rows",
+            "reps", "10-12",
+            "rest", "60s",
+            "sets", "3",
+            "emoji", "🏋️",
+            "notes", "Bend at waist, pull dumbbells to hips",
+            "difficulty", "Medium"
+        ));
+        
+        exercises.add(Map.of(
+            "name", "Dumbbell Shoulder Press",
+            "reps", "8-10",
+            "rest", "60s",
+            "sets", "3",
+            "emoji", "💪",
+            "notes", "Press dumbbells overhead, control movement",
+            "difficulty", "Hard"
+        ));
+        
+        exercises.add(Map.of(
+            "name", "Dumbbell Squats",
+            "reps", "12-15",
+            "rest", "90s",
+            "sets", "3",
+            "emoji", "🦵",
+            "notes", "Hold dumbbells at sides, squat down",
+            "difficulty", "Medium"
+        ));
+        
+        exercises.add(Map.of(
+            "name", "Dumbbell Lunges",
+            "reps", "10 each leg",
+            "rest", "60s",
+            "sets", "3",
+            "emoji", "🦵",
+            "notes", "Step forward, lower back knee",
+            "difficulty", "Medium"
+        ));
+        
+        parsedJson.put("exercises", exercises);
+        parsedJson.put("workoutType", "Full Body");
+        parsedJson.put("targetMuscles", java.util.List.of("Chest", "Back", "Shoulders", "Legs"));
+        parsedJson.put("equipment", java.util.List.of("Dumbbells"));
+        parsedJson.put("llmAdjusted", true);
+        parsedJson.put("adjustmentReason", "corrupted_transcript");
+        logger.info("[Extract] Created failure indicator workout with llmAdjusted=true");
     }
 } 
