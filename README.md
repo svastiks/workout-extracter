@@ -29,6 +29,8 @@ A full-stack application that extracts workout routines from YouTube fitness vid
 
 <img width="456" height="248" alt="image" src="https://github.com/user-attachments/assets/0026840c-bbe1-4a2a-8df0-0a188641aa8f" />
 
+<img width="456" height="248" alt="image" src="https://github.com/user-attachments/assets/26fae733-6cb0-43ce-a2ef-175f850430e6" />
+
 <img width="452" height="246" alt="image" src="https://github.com/user-attachments/assets/bb228396-af01-4309-9373-60cdcc91ddc7" />
 
 <img width="453" height="246" alt="image" src="https://github.com/user-attachments/assets/9c57e87d-9fa1-49d8-b9b5-5821c852a64a" />
