@@ -101,4 +101,10 @@ export async function getVideosByCreatorId(creatorId: number) {
   const res = await fetch(`${API_BASE_URL}/creators/${creatorId}/videos`);
   if (!res.ok) throw new Error("Failed to fetch videos for creator");
   return res.json();
+};
+
+export async function exportWorkoutPDF(youtubeVideoId: string): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/workouts/${youtubeVideoId}/export-pdf`);
+  if (!res.ok) throw new Error("Failed to export PDF");
+  return res.blob();
 }; 
