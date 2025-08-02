@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: workout-extract-api
+    env: java
+    buildCommand: ./mvnw clean install -DskipTests
+    startCommand: java -jar target/workoutextract-1.0-SNAPSHOT.jar
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: workout-extract-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: workout-extract-db
+          property: username
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: workout-extract-db
+          property: password
+
+databases:
+  - name: workout-extract-db
+    databaseName: workout_extract_db
+    user: workout_user
+    plan: free
+    ipAllowList: [] 
