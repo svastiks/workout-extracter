@@ -1,7 +1,6 @@
 services:
   - type: web
     name: workout-extract-api
-    env: java
     buildCommand: cd server && ./mvnw clean install -DskipTests
     startCommand: cd server && java -jar target/workoutextract-1.0-SNAPSHOT.jar
     envVars:
