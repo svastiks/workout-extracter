@@ -2,8 +2,8 @@ services:
   - type: web
     name: workout-extract-api
     env: java
-    buildCommand: ./mvnw clean install -DskipTests
-    startCommand: java -jar target/workoutextract-1.0-SNAPSHOT.jar
+    buildCommand: cd server && ./mvnw clean install -DskipTests
+    startCommand: cd server && java -jar target/workoutextract-1.0-SNAPSHOT.jar
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: production
