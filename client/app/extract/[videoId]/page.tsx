@@ -9,7 +9,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { getWorkoutByYoutubeId, Workout } from "@/services/api"
+import { getWorkoutByYoutubeId, exportWorkoutPDF, Workout } from "@/services/api"
 import { useParams } from "next/navigation"
 
 const getDifficultyColor = (difficulty: string) => {
@@ -98,6 +98,23 @@ export default function WorkoutExtractPage() {
       setTimeout(() => setCopiedFull(false), 3000)
     } catch (err) {
       toast({ title: "Failed to copy", description: "Please try again", variant: "destructive" })
+    }
+  }
+
+  const handleExportPDF = async () => {
+    if (!workoutData) return;
+    try {
+      const blob = await exportWorkoutPDF(workoutData.youtubeVideoId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `workout-${workoutData.youtubeVideoId}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast({ title: "PDF exported! 📄", description: "Workout PDF downloaded successfully" });
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+      toast({ title: "Failed to export PDF", description: "Please try again", variant: "destructive" });
     }
   }
 
@@ -319,7 +336,14 @@ export default function WorkoutExtractPage() {
                   {copiedFull ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                   {copiedFull ? "Copied!" : "Copy Full Workout"}
                 </Button>
-
+                <Button
+                  variant="outline"
+                  className="w-full border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
+                  onClick={handleExportPDF}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export as PDF
+                </Button>
                 <Button
                   variant="outline"
                   className="w-full border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
