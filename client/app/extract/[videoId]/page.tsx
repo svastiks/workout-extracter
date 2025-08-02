@@ -133,10 +133,7 @@ export default function WorkoutExtractPage() {
                 <Share2 className="w-5 h-5 mr-2" />
                 Share
               </Button>
-              <Button className="bg-white hover:bg-gray-200 text-black px-4 py-2 h-10 font-medium">
-                <Download className="w-5 h-5 mr-2" />
-                Export PDF
-              </Button>
+
             </div>
           </div>
         </div>
@@ -320,13 +317,7 @@ export default function WorkoutExtractPage() {
                   {copiedFull ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                   {copiedFull ? "Copied!" : "Copy Full Workout"}
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export as PDF
-                </Button>
+
                 <Button
                   variant="outline"
                   className="w-full border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
