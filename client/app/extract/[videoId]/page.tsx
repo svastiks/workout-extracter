@@ -101,6 +101,8 @@ export default function WorkoutExtractPage() {
     }
   }
 
+
+
   if (loading) return <div className="text-center text-white py-20">Loading workout...</div>;
   if (error) return <div className="text-center text-red-500 py-20">{error}</div>;
   if (!workoutData) return null;
