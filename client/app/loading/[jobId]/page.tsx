@@ -17,6 +17,10 @@ interface ProgressState {
   color: string;
 }
 
+const formatStatus = (status: string): string => {
+  return status.replace(/_/g, ' ');
+};
+
 const getProgressState = (status: string, progress: number): ProgressState => {
   switch (status) {
     case "PENDING":
@@ -223,7 +227,7 @@ export default function LoadingPage() {
                     currentState.status === "FAILED" ? "text-red-400" :
                     "text-blue-400"
                   }`}>
-                    {currentState.status}
+                    {formatStatus(currentState.status)}
                   </span>
                 </div>
                 
