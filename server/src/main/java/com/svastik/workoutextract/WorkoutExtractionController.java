@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,14 +22,17 @@ public class WorkoutExtractionController {
     private final VideoExtractionService videoExtractionService;
     private final VideoRepository videoRepository;
     private final ExtractionJobRepository extractionJobRepository;
+    private final PDFExportService pdfExportService;
 
     public WorkoutExtractionController(
             VideoExtractionService videoExtractionService,
             VideoRepository videoRepository,
-            ExtractionJobRepository extractionJobRepository) {
+            ExtractionJobRepository extractionJobRepository,
+            PDFExportService pdfExportService) {
         this.videoExtractionService = videoExtractionService;
         this.videoRepository = videoRepository;
         this.extractionJobRepository = extractionJobRepository;
+        this.pdfExportService = pdfExportService;
     }
 
     // Controller methods to be implemented
@@ -104,6 +108,33 @@ public class WorkoutExtractionController {
         return videoRepository.findByYoutubeVideoId(youtubeVideoId)
                 .<ResponseEntity<?>>map(video -> ResponseEntity.ok(video))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Video not found")));
+    }
+
+    @GetMapping("/{youtubeVideoId}/export-pdf")
+    public ResponseEntity<?> exportWorkoutPDF(@PathVariable String youtubeVideoId) {
+        logger.info("[Export] Received PDF export request for video: {}", youtubeVideoId);
+        
+        Optional<Video> videoOpt = videoRepository.findByYoutubeVideoId(youtubeVideoId);
+        if (videoOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Video not found"));
+        }
+
+        try {
+            Video video = videoOpt.get();
+            byte[] pdfBytes = pdfExportService.generateWorkoutPDF(video);
+            
+            String filename = "workout-" + youtubeVideoId + ".pdf";
+            
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
+                    .body(pdfBytes);
+                    
+        } catch (Exception e) {
+            logger.error("[Export] Error generating PDF for video {}: {}", youtubeVideoId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to generate PDF"));
+        }
     }
 
     private String parseYoutubeVideoId(String url) {
