@@ -106,18 +106,12 @@ export default function HomePage() {
               <span className="text-xl font-bold text-white">WorkoutExtract</span>
             </div>
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/catalog" className="text-gray-300 hover:text-white transition-colors">
-                Catalog
+              <Link href="/catalog" className="text-gray-300 hover:text-white transition-colors flex items-center">
+                <span className="text-lg mr-2 leading-none">🔍</span>Browse Creators
               </Link>
-              <Link href="#how-it-works" className="text-gray-300 hover:text-white transition-colors">
-                How it Works
+              <Link href="#how-it-works" className="text-gray-300 hover:text-white transition-colors flex items-center">
+                <span className="text-xl mr-2">⚙️</span>How it Works
               </Link>
-              <Button
-                variant="outline"
-                className="border-gray-600 text-gray-300 hover:bg-white hover:text-black bg-transparent"
-              >
-                Sign In
-              </Button>
             </nav>
           </div>
         </div>
