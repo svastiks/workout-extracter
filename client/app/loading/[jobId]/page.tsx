@@ -147,7 +147,7 @@ export default function LoadingPage() {
       if (isPolling) {
         pollStatus();
       }
-    }, 3000);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [jobId, router, isPolling]);

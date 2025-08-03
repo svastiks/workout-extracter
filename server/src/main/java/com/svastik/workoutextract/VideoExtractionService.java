@@ -91,12 +91,20 @@ public class VideoExtractionService {
             
             // First command: Get metadata JSON
             String metadataCommand = String.format(
-                "yt-dlp --dump-json --skip-download \"%s\"",
+                "yt-dlp --user-agent \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\" --dump-json --skip-download \"%s\"",
                 url
             );
             logger.info("[Extract] yt-dlp metadata command: {}", metadataCommand);
+            logger.info("[Extract] Starting metadata extraction for video: {}", youtubeVideoId);
             String ytDlpOutput = executeShellCommand(metadataCommand);
             logger.info("[Extract] yt-dlp metadata command executed. Output length: {}", ytDlpOutput.length());
+            logger.debug("[Extract] yt-dlp metadata output: {}", ytDlpOutput);
+            
+            // Check if output is empty
+            if (ytDlpOutput == null || ytDlpOutput.trim().isEmpty()) {
+                logger.error("[Extract] yt-dlp metadata command returned empty output!");
+                throw new RuntimeException("yt-dlp metadata extraction failed - empty output");
+            }
             
             // Update progress to 30% - starting transcript extraction
             job.setProgress(30);
@@ -105,12 +113,20 @@ public class VideoExtractionService {
             
             // Second command: Get transcript and comments files
             String filesCommand = String.format(
-                "yt-dlp --write-auto-sub --sub-lang en --write-comments --skip-download --output \"%s.%%(ext)s\" \"%s\"",
+                "yt-dlp --user-agent \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\" --write-auto-sub --sub-lang en --write-comments --skip-download --output \"%s.%%(ext)s\" \"%s\"",
                 youtubeVideoId, url
             );
             logger.info("[Extract] yt-dlp files command: {}", filesCommand);
+            logger.info("[Extract] Starting transcript and comments extraction for video: {}", youtubeVideoId);
             String filesOutput = executeShellCommand(filesCommand);
             logger.info("[Extract] yt-dlp files command executed. Output length: {}", filesOutput.length());
+            logger.debug("[Extract] yt-dlp files output: {}", filesOutput);
+            
+            // Check if files output is empty
+            if (filesOutput == null || filesOutput.trim().isEmpty()) {
+                logger.error("[Extract] yt-dlp files command returned empty output!");
+                throw new RuntimeException("yt-dlp files extraction failed - empty output");
+            }
 
             // Update progress to 40% - parsing metadata
             job.setProgress(40);
@@ -119,12 +135,30 @@ public class VideoExtractionService {
             
             // Parse yt-dlp output
             logger.info("[Extract] Parsing yt-dlp output...");
-            Map<String, Object> videoJson = objectMapper.readValue(ytDlpOutput, Map.class);
-            String title = (String) videoJson.get("title");
-            String channelId = (String) videoJson.get("channel_id");
-            String uploader = (String) videoJson.get("uploader");
-            String thumbnail = (String) videoJson.get("thumbnail");
-            logger.info("[Extract] yt-dlp output parsed - Title: {}, Channel: {}, Uploader: {}", title, channelId, uploader);
+            logger.info("[Extract] Attempting to parse JSON from yt-dlp output. Length: {}", ytDlpOutput.length());
+            
+            Map<String, Object> videoJson;
+            String title, channelId, uploader, thumbnail;
+            
+            try {
+                videoJson = objectMapper.readValue(ytDlpOutput, Map.class);
+                logger.info("[Extract] JSON parsing successful. Found {} keys in video metadata", videoJson.keySet().size());
+                logger.debug("[Extract] Video metadata keys: {}", videoJson.keySet());
+                
+                title = (String) videoJson.get("title");
+                channelId = (String) videoJson.get("channel_id");
+                uploader = (String) videoJson.get("uploader");
+                thumbnail = (String) videoJson.get("thumbnail");
+                
+                logger.info("[Extract] yt-dlp output parsed - Title: {}, Channel: {}, Uploader: {}", title, channelId, uploader);
+                logger.debug("[Extract] Video details - Title: '{}', Channel ID: '{}', Uploader: '{}', Thumbnail: '{}'", 
+                    title, channelId, uploader, thumbnail);
+                    
+            } catch (Exception e) {
+                logger.error("[Extract] Failed to parse yt-dlp JSON output: {}", e.getMessage());
+                logger.error("[Extract] yt-dlp output that caused parsing error: {}", ytDlpOutput);
+                throw new RuntimeException("Failed to parse yt-dlp JSON output", e);
+            }
 
             // Update progress to 50% - reading comments and transcript
             job.setProgress(50);

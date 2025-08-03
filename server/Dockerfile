@@ -10,7 +10,8 @@ RUN apk add --no-cache \
     findutils \
     grep \
     sed \
-    && pip3 install --break-system-packages yt-dlp
+    && pip3 install --break-system-packages yt-dlp \
+    && chmod +x $(which yt-dlp)
 
 COPY mvnw .
 COPY .mvn .mvn
