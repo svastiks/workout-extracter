@@ -1,6 +1,7 @@
-FROM eclipse-temurin:17-jdk-alpine
+FROM amazoncorretto:17-alpine
 WORKDIR /app
 
+# Install required packages
 RUN apk add --no-cache \
     bash \
     curl \
@@ -9,8 +10,7 @@ RUN apk add --no-cache \
     findutils \
     grep \
     sed \
-    wget \
-    && pip3 install yt-dlp
+    && pip3 install --break-system-packages yt-dlp
 
 COPY mvnw .
 COPY .mvn .mvn
