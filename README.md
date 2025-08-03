@@ -1,6 +1,14 @@
-# Workout Extracter (in-progress/not-deployed yet)
+# Workout Extracter (still in-progress)
 
 A full-stack application that extracts workout routines from YouTube fitness videos using AI.
+
+## 🚀 DEMO: See It in Action!
+
+Curious to see how it works? 👇 Click the image below to watch a quick demonstration video!
+
+<a href="https://drive.google.com/file/d/1HmcrEMCXMXkFU67V6E2lxt2ZJm-jYgTI/view?usp=drive_link" target="_blank">
+  <img src="https://github.com/user-attachments/assets/0026840c-bbe1-4a2a-8df0-0a188641aa8f" alt="Project Demo Video Thumbnail" width="756" height="548" />
+</a>
 
 ## Project Flow (diagram in progress)
 
