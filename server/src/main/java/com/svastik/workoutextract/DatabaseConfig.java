@@ -15,6 +15,9 @@ public class DatabaseConfig {
     @Value("${DATABASE_URL:}")
     private String databaseUrl;
 
+    @Value("${DB_PORT:5432}")
+    private int dbPort;
+
     @Bean
     @Primary
     public DataSource dataSource() {
@@ -30,7 +33,7 @@ public class DatabaseConfig {
                 String username = userInfo[0];
                 String password = userInfo[1];
                 String host = uri.getHost();
-                int port = uri.getPort();
+                int port = uri.getPort() != -1 ? uri.getPort() : dbPort; // Use environment variable if no port specified
                 String database = uri.getPath().substring(1); // Remove leading slash
                 
                 // Construct JDBC URL
