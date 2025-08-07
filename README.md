@@ -1,6 +1,6 @@
 # Workout Extracter (still in-progress)
 
-A full-stack application that extracts workout routines from YouTube fitness videos using AI.
+A full-stack application that extracts workout routines from YouTube fitness videos with LLM assistance (AI).
 
 ## 🚀 DEMO: See It in Action!
 
